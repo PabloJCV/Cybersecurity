@@ -1,1 +1,90 @@
+## Objetivo
+Analizar una conexion SSH desde la perspectiva de un analista SOC N1, identificación del servicio involucrado, 
+el origen de la conexión, el usuario,el método de autenticación y el resultado del acceso.
+También se busca correlacionar la evidencia obtenida mediante Wireshark con los registrosdel sistema linux.
 
+## Entorno
+-Sistema Operativo: Ubuntu 26.04 LTS
+-Servicio analizado: OpenSSH
+-Puerto: TCP/22
+-IP de origen de prueba: 127.0.0.1
+-Herramienta de analisis de red: Wireshark
+-Herramienta de analisis de logs: journalctl
+
+## Evidencia 
+Durante el laboratorio se verificó que el servicio OpenSSH se encontraba escuchando en el puerto TCP/22.
+Evidencia obtenida mediante los logs del sistema:
+
+Server listening on 0.0.0.0 port 22.
+Server listening on :: port 22.
+
+Posteriormente se generó una conexión SSH local y se obtuvo el siguiente evento de autenticación:
+Accepted password for pablodev from 127.0.0.1 port 45494 ssh2
+Este evento demuestra que se produjo una autenticación SSH exitosa utilizando contraseña.
+
+## Analisis del evento
+Campo	Valor
+Fecha	10 de septiembre de 2026
+Hora	18:23:58
+Servicio	SSH
+Puerto destino	22/TCP
+Usuario	pablodev
+IP de origen	127.0.0.1
+Puerto de origen	45494
+Método de autenticación	Password
+Resultado	Exitoso
+Protocolo	SSH2
+
+## Interpretación
+La dirección 127.0.0.1 corresponde a localhost, por lo que la conexión se originó desde la propia máquina Ubuntu.
+El puerto 45494 corresponde al puerto de origen utilizado temporalmente por el cliente SSH. El servicio SSH se encontraba escuchando
+en el puerto 22/TCP.
+La autenticación fue exitosa y se realizó mediante contraseña.
+
+## Analisis SOC N1
+
+El evento no fue considerado sospechoso dentro de este laboratorio porque la conexión SSH fue generada intencionalmente durante la práctica.
+Sin embargo, un evento similar proveniente de una dirección IP externa debería investigarse considerando:
+IP de origen.
+Usuario utilizado.
+Hora del acceso.
+Método de autenticación.
+Intentos fallidos anteriores.
+Si el acceso estaba autorizado.
+Actividad realizada después de la autenticación.
+
+Un puerto abierto no demuestra por sí mismo que exista una vulnerabilidad. Sin embargo, un servicio escuchando representa una superficie de
+ataque potencial que debe ser identificada y monitoreada.
+
+## Correlación con Wireshark
+
+La conexión SSH también fue observada previamente mediante Wireshark.
+La correlación entre la evidencia de red y los logs permitió establecer:
+1. Wireshark mostró tráfico asociado a una conexión SSH.
+2. Los logs de Linux registraron el procesamiento de la autenticación.
+3. El log permitió identificar el usuario, IP de origen, puerto de origen y resultado de la autenticación.
+
+Esta correlación permite obtener mayor contexto durante una investigación de seguridad.
+
+## Comandos utilizados
+Consultar los logs del servicio SSH
+sudo journalctl -u ssh --since "30 minutes ago"
+
+Buscar autenticaciones exitosas
+sudo journalctl --since "30 minutes ago" | grep "Accepted password"
+
+Buscar eventos relacionados con sshd
+sudo journalctl --since "30 minutes ago" | grep "sshd-session"
+
+Buscar eventos de autenticación
+sudo journalctl -u ssh --since "10 minutes ago" | grep -E "Accepted|Failed|Invalid"
+
+Buscar apertura y cierre de sesiones
+sudo journalctl --since "10 minutes ago" | grep -E "session opened|session closed"
+
+##Conclusión
+
+Durante este laboratorio se analizó una autenticación SSH exitosa utilizando logs de Linux y evidencia de red obtenida mediante Wireshark.
+Se identificaron correctamente el usuario, IP de origen, puerto de origen, servicio, método de autenticación y resultado del evento.
+El laboratorio permitió practicar la identificación y correlación de evidencia de red y de host desde la perspectiva de un analista SOC N1.
+El siguiente paso será analizar intentos fallidos de autenticación SSH y reconocer patrones asociados a posibles ataques de fuerza bruta.
