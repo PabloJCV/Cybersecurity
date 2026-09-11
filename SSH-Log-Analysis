@@ -1,7 +1,7 @@
 ## Objetivo
 Analizar una conexion SSH desde la perspectiva de un analista SOC N1, identificación del servicio involucrado, 
 el origen de la conexión, el usuario,el método de autenticación y el resultado del acceso.
-También se busca correlacionar la evidencia obtenida mediante Wireshark con los registrosdel sistema linux.
+También se busca correlacionar la evidencia obtenida mediante Wireshark con los registros del sistema linux.
 
 ## Entorno
 -Sistema Operativo: Ubuntu 26.04 LTS
@@ -23,17 +23,17 @@ Accepted password for pablodev from 127.0.0.1 port 45494 ssh2
 Este evento demuestra que se produjo una autenticación SSH exitosa utilizando contraseña.
 
 ## Analisis del evento
-Campo	Valor
-Fecha	10 de septiembre de 2026
-Hora	18:23:58
-Servicio	SSH
-Puerto destino	22/TCP
-Usuario	pablodev
-IP de origen	127.0.0.1
+Campo         	Valor
+Fecha	          10 de septiembre de 2026
+Hora	          18:23:58
+Servicio	      SSH
+Puerto  destino	22/TCP
+Usuario	        pablodev
+IP de origen	  127.0.0.1
 Puerto de origen	45494
 Método de autenticación	Password
-Resultado	Exitoso
-Protocolo	SSH2
+Resultado	      Exitoso
+Protocolo	       SSH2
 
 ## Interpretación
 La dirección 127.0.0.1 corresponde a localhost, por lo que la conexión se originó desde la propia máquina Ubuntu.
