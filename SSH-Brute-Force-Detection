@@ -1,0 +1,118 @@
+# Detección de ataque de fuerza bruta contra SSH.
+## Objetivo
+Realizar un laboratorio controlado para identificar intentos repetidos de autenticación fallida contra un servicio SSH, analizar los registros 
+generados mediante "journalctl" y aplicar una detección básica basada en la cantidad de intentos.
+El laboratorio tambien busca identificar el patron de multiples autenticaciones fallidas seguido de una autenticación exitosa.
+
+## Entorno
+
+- Sistema operativo: Ubuntu 26.04 LTS
+- Host: pablodev-OptiPlex-790
+- Servicio analizado: SSH
+- Puerto: 22/TCP
+- Usuario objetivo: pablodev
+- IP de origen utilizada en la prueba: 127.0.0.1
+- Tipo de actividad: laboratorio controlado
+
+## Escenario
+
+Se generaron intencionalmente varios intentos de autenticación fallidos contra el servicio SSH local utilizando el usuario `pablodev`.
+Posteriormente se realizó una autenticación correcta para analizar el comportamiento de los registros y comprobar si era posible identificar el patrón:
+Failed password → Failed password → Failed password → Accepted password
+
+## Evidencia
+
+Durante la prueba se generaron múltiples intentos fallidos de autenticación SSH desde `127.0.0.1` contra el usuario `pablodev`.
+
+### Eventos observados
+
+```text
+sep 10 20:49:59 pablodev-OptiPlex-790 sshd-session[8294]: Failed password for pablodev from 127.0.0.1 port 50786 ssh2
+sep 10 20:50:00 pablodev-OptiPlex-790 sshd-session[8294]: Failed password for pablodev from 127.0.0.1 port 50786 ssh2
+sep 10 20:50:08 pablodev-OptiPlex-790 sshd-session[8294]: Failed password for pablodev from 127.0.0.1 port 50786 ssh2
+
+sep 10 20:50:26 pablodev-OptiPlex-790 sshd-session[8314]: Failed password for pablodev from 127.0.0.1 port 38062 ssh2
+sep 10 20:50:28 pablodev-OptiPlex-790 sshd-session[8314]: Failed password for pablodev from 127.0.0.1 port 38062 ssh2
+sep 10 20:50:32 pablodev-OptiPlex-790 sshd-session[8314]: Failed password for pablodev from 127.0.0.1 port 38062 ssh2
+
+sep 10 20:57:13 pablodev-OptiPlex-790 sshd-session[8351]: Failed password for pablodev from 127.0.0.1 port 32770 ssh2
+sep 10 20:57:15 pablodev-OptiPlex-790 sshd-session[8351]: Failed password for pablodev from 127.0.0.1 port 32770 ssh2
+sep 10 20:57:19 pablodev-OptiPlex-790 sshd-session[8351]: Failed password for pablodev from 127.0.0.1 port 32770 ssh2
+sep 10 20:57:32 pablodev-OptiPlex-790 sshd-session[8366]: Failed password for pablodev from 127.0.0.1 port 33934 ssh2
+sep 10 20:57:37 pablodev-OptiPlex-790 sshd-session[8366]: Accepted password for pablodev from 127.0.0.1 port 33934 ssh2
+
+
+##Resumen de la evidencia
+Elemento	                        Resultado
+Intentos fallidos                    	10
+Autenticaciones exitosas	             1
+Usuario objetivo	                  pablodev
+IP de origen	                      127.0.0.1
+Servicio	                            SSH
+Puerto destino	                    22/TCP
+Último fallo	                       20:57:32
+Login exitoso	                       20:57:37
+Diferencia                          	5 segundos
+
+
+## Análisis SOC N1
+
+Los registros muestran múltiples intentos fallidos de autenticación contra el servicio SSH utilizando el usuario `pablodev`.
+Se identificaron un total de 10 eventos `Failed password` provenientes de la dirección IP `127.0.0.1`.
+La actividad presenta un patrón compatible con un posible intento de fuerza bruta debido a la repetición de autenticaciones fallidas contra el mismo usuario.
+Además, se observó una autenticación exitosa posterior:
+
+```text
+20:57:32 - Failed password
+20:57:37 - Accepted password
+
+## Regla de detección
+
+Para este laboratorio se estableció el siguiente criterio básico:
+
+> Generar una alerta cuando una misma dirección IP produzca más de 5 intentos fallidos de autenticación SSH contra un mismo usuario durante el período analizado.
+La evidencia obtenida fue:
+
+```text
+10 127.0.0.1 pablodev
+
+## Comandos utilizados
+Contar intentos por IP
+sudo journalctl --since "30 minutes ago" | grep "Failed password" | awk '{print $11}' | sort | uniq -c
+
+Contar intentos por usuario
+sudo journalctl --since "30 minutes ago" | grep "Failed password" | awk '{print $9}' | sort | uniq -c
+
+Agrupar IP y usuario
+sudo journalctl --since "30 minutes ago" | grep "Failed password" | awk '{print $11, $9}' | sort | uniq -c
+
+Correlacionar fallos y accesos exitosos
+sudo journalctl --since "30 minutes ago" | grep -E "Failed password|Accepted password"
+
+
+
+## Conclusión
+
+Este laboratorio permitió practicar la identificación y análisis de intentos repetidos de autenticación contra SSH utilizando registros 
+reales del sistema.
+
+Se aprendió a:
+
+- Identificar eventos `Failed password`.
+- Identificar autenticaciones `Accepted password`.
+- Extraer IPs y usuarios desde logs.
+- Contabilizar intentos de autenticación.
+- Correlacionar múltiples fallos con un acceso exitoso.
+- Establecer un umbral básico de detección.
+- Diferenciar una alerta de un incidente confirmado.
+- Utilizar comandos de Linux para realizar análisis inicial de logs.
+
+El patrón observado fue compatible con una posible actividad de fuerza bruta, pero el contexto confirmó que se trataba de una prueba
+controlada realizada en el laboratorio.
+
+Este ejercicio representa una actividad básica de análisis y detección que un analista SOC N1 podría realizar al investigar eventos 
+de autenticación SSH.
+
+
+
+
